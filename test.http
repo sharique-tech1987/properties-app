@@ -1,0 +1,21 @@
+###
+POST localhost:5000/login
+Content-Type: application/json
+Accept: */*
+
+{
+
+}
+
+###
+POST localhost:5000/register
+Content-Type: application/json
+Accept: */*
+
+{
+
+}
+
+###
+GET localhost:5000/properties
+Accept: */*
