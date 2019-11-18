@@ -101,8 +101,49 @@ def property_create():
 @auth.login_required
 def property_update():
     # request
-    ...
+    if not request.json or not 'property_id' in request.json:
+        abort(400)
+        
+#   Read from properties Json file
+    jsonOpObj = JsonFileOperator(PROPERTIES_FILE, 'r')
+    users_properties = jsonOpObj.Read()
+    
+#   Read from users Json file
+    jsonOpObj = JsonFileOperator(USERS_FILE, 'r')
+    users = jsonOpObj.Read()
+    found_user = next((item for item in users if item["username"] == auth.username()), None)
+    
+    property_id = request.json["property_id"]
+    user_id = found_user['id']
+    property_index = get_property_index(users_properties, property_id, user_id)
+    
+    if property_index != -1:
+        done_op = True
+#     Make Property Model
+        additional_params = {'id':property_id, 'user_id':found_user['id']}
+        property_model = Helpers.PopulateModel(request, CREATE_PROPERTY_PARAMS, additional_params)
+        print('----------Property Model -----------')
+        print(property_model)
+        users_properties[property_index] = property_model
+         
+#   Updating property model
+        jsonOpObj = JsonFileOperator(PROPERTIES_FILE, 'w')
+        jsonOpObj.Write(users_properties)
+ 
+    else:
+        done_op = False
+        
+    return jsonify(done_op)
 
+
+def get_property_index(users_properties, property_id, user_id):
+    property_index = -1
+    for index, item in enumerate(users_properties):
+        if item["id"] == property_id and item["user_id"] == user_id:
+            property_index = index
+            break
+    
+    return property_index
 
 @app.route('/property/delete', methods=['DELETE'])
 @auth.login_required
@@ -123,20 +164,16 @@ def property_delete():
     property_id = request.json["property_id"]
     user_id = found_user['id']
     
-    property_index = -1
-    for index, item in enumerate(users_properties):
-        if item["id"] == property_id and item["user_id"] == user_id:
-            property_index = index
-            break 
+    property_index = get_property_index(users_properties, property_id, user_id)
     if property_index != -1:
         done_op = True
-        del users_properties[property_index] 
+        del users_properties[property_index]
+
+#   Write to Json file
+        jsonOpObj = JsonFileOperator(PROPERTIES_FILE, 'w')
+        jsonOpObj.Write(users_properties) 
     else:
         done_op = False
-        
-#   Write to Json file
-    jsonOpObj = JsonFileOperator(PROPERTIES_FILE, 'w')
-    jsonOpObj.Write(users_properties)
 
     return jsonify(done_op)
 
